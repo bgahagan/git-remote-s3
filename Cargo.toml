@@ -1,0 +1,19 @@
+[package]
+name = "git-remote-s3"
+version = "0.1.0"
+authors = ["Bryan Gahagan <git@bgahagan.dev>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+error-chain = "0.12.1"
+itertools = "0.8.0"
+tempfile = "3.1.0"
+rusoto_core = "0.40.0"
+rusoto_credential = "0.40.0"
+rusoto_s3 = "0.40.0"
+
+[dev-dependencies]
+assert_cmd = "0.11"
+
