@@ -15,13 +15,14 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
 use std::io::{self};
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::PathBuf;
 
 pub mod errors {
     error_chain! {}
 }
 use errors::*;
+mod git;
+mod gpg;
 mod s3;
 
 quick_main!(run);
@@ -123,111 +124,6 @@ impl RemoteRefs {
     }
 }
 
-fn gpg_encrypt(recipients: &[String], i: &Path, o: &Path) -> Result<()> {
-    let mut cmd = Command::new("gpg");
-    cmd
-        .arg("-q")
-        .arg("--batch");
-    for recipient in recipients {
-        cmd
-            .arg("-r")
-            .arg(recipient);
-    }
-    let result = cmd
-        .arg("-o")
-        .arg(o.to_str().chain_err(|| "out path invalid")?)
-        .arg("-e")
-        .arg(i.to_str().chain_err(|| "in path invalid")?)
-        .output()
-        .chain_err(|| "failed to run gpg")?;
-
-    if !result.status.success() {
-        bail!("gpg encrypt failed");
-    }
-    Ok(())
-}
-
-fn gpg_decrypt(i: &Path, o: &Path) -> Result<()> {
-    let result = Command::new("gpg")
-        .arg("-q")
-        .arg("--batch")
-        .arg("-o")
-        .arg(o.to_str().chain_err(|| "out path invalid")?)
-        .arg("-d")
-        .arg(i.to_str().chain_err(|| "in path invalid")?)
-        .output()
-        .chain_err(|| "failed to run gpg")?;
-    if !result.status.success() {
-        bail!("gpg decrypt failed");
-    }
-    Ok(())
-}
-
-fn git_bundle_create(bundle: &Path, ref_name: &str) -> Result<()> {
-    let result = Command::new("git")
-        .arg("bundle")
-        .arg("create")
-        .arg(bundle.to_str().chain_err(|| "bundle path invalid")?)
-        .arg(ref_name)
-        .output()
-        .chain_err(|| "failed to run git")?;
-    if !result.status.success() {
-        bail!("git bundle failed");
-    }
-    Ok(())
-}
-
-fn git_bundle_unbundle(bundle: &Path, ref_name: &str) -> Result<()> {
-    let result = Command::new("git")
-        .arg("bundle")
-        .arg("unbundle")
-        .arg(bundle.to_str().chain_err(|| "bundle path invalid")?)
-        .arg(ref_name)
-        .output()
-        .chain_err(|| "failed to run git")?;
-    if !result.status.success() {
-        bail!("git unbundle failed");
-    }
-    Ok(())
-}
-
-fn git_is_ancestor(base_ref: &str, remote_ref: &str) -> Result<bool> {
-    let result = Command::new("git")
-        .arg("merge-base")
-        .arg("--is-ancestor")
-        .arg(remote_ref)
-        .arg(base_ref)
-        .output()
-        .chain_err(|| "failed to run git")?;
-    Ok(result.status.success())
-}
-
-fn git_config(setting: &str) -> Result<String> {
-    let result = Command::new("git")
-        .arg("config")
-        .arg(setting)
-        .output()
-        .chain_err(|| "failed to run git")?;
-    if !result.status.success() {
-        bail!("git config failed");
-    }
-    let s = String::from_utf8(result.stdout).chain_err(|| "not utf8")?;
-    Ok(s.trim().to_string())
-}
-
-fn git_rev_parse(rev: &str) -> Result<String> {
-    let result = Command::new("git")
-        .arg("rev-parse")
-        .arg(rev)
-        .output()
-        .chain_err(|| "failed to run git")?;
-    if !result.status.success() {
-        bail!("git rev-parse failed");
-    }
-    let s = String::from_utf8(result.stdout).chain_err(|| "not utf8")?;
-    Ok(s.trim().to_string())
-}
-
 fn fetch_from_s3(s3: &S3Client, settings: &Settings, r: &GitRef) -> Result<()> {
     let tmp_dir = Builder::new()
         .prefix("s3_fetch")
@@ -243,9 +139,9 @@ fn fetch_from_s3(s3: &S3Client, settings: &Settings, r: &GitRef) -> Result<()> {
     };
     s3::get(s3, &o, &enc_file)?;
 
-    gpg_decrypt(&enc_file, &bundle_file)?;
+    gpg::decrypt(&enc_file, &bundle_file)?;
 
-    git_bundle_unbundle(&bundle_file, &r.name)?;
+    git::bundle_unbundle(&bundle_file, &r.name)?;
 
     Ok(())
 }
@@ -258,18 +154,18 @@ fn push_to_s3(s3: &S3Client, settings: &Settings, r: &GitRef) -> Result<()> {
     let bundle_file = tmp_dir.path().join("bundle");
     let enc_file = tmp_dir.path().join("buncle_enc");
 
-    git_bundle_create(&bundle_file, &r.name)?;
+    git::bundle_create(&bundle_file, &r.name)?;
 
-    let recipients =
-        git_config(&format!("remote.{}.gpgRecipients", settings.remote_alias))
-        .map(|config|
-            config.split_ascii_whitespace().map(|s| s.to_string()).collect_vec()
-        )
-        .or_else(|_| {
-            git_config("user.email").map(|recip| vec![recip])
-        })?;
+    let recipients = git::config(&format!("remote.{}.gpgRecipients", settings.remote_alias))
+        .map(|config| {
+            config
+                .split_ascii_whitespace()
+                .map(|s| s.to_string())
+                .collect_vec()
+        })
+        .or_else(|_| git::config("user.email").map(|recip| vec![recip]))?;
 
-    gpg_encrypt(&recipients, &bundle_file, &enc_file)?;
+    gpg::encrypt(&recipients, &bundle_file, &enc_file)?;
 
     let path = r.bundle_path(settings.root.key.to_owned());
     let o = s3::Key {
@@ -311,7 +207,7 @@ fn cmd_push(s3: &S3Client, settings: &Settings, push_ref: &str) -> Result<()> {
     let all_remote_refs = list_remote_refs(s3, settings)?;
     let remote_refs = all_remote_refs.get(src_ref);
     let prev_ref = remote_refs.map(|rs| rs.latest_ref());
-    let local_sha = git_rev_parse(src_ref)?;
+    let local_sha = git::rev_parse(src_ref)?;
     let local_ref = GitRef {
         name: src_ref.to_string(),
         sha: local_sha,
@@ -320,7 +216,7 @@ fn cmd_push(s3: &S3Client, settings: &Settings, push_ref: &str) -> Result<()> {
     let can_push = force
         || match prev_ref {
             Some(prev_ref) => {
-                if !git_is_ancestor(&local_ref.sha, &prev_ref.reference.sha)? {
+                if !git::is_ancestor(&local_ref.sha, &prev_ref.reference.sha)? {
                     println!("error {} remote changed: force push to add new ref, the old ref will be kept until its merged)", dst_ref);
                     false
                 } else {
@@ -335,7 +231,7 @@ fn cmd_push(s3: &S3Client, settings: &Settings, push_ref: &str) -> Result<()> {
 
         // Delete any ref that is an ancestor of the one we pushed
         for r in remote_refs.iter().flat_map(|r| r.by_update_time.iter()) {
-            if git_is_ancestor(&local_ref.sha, &r.reference.sha)? {
+            if git::is_ancestor(&local_ref.sha, &r.reference.sha)? {
                 s3::del(s3, &r.object)?;
             }
         }
@@ -408,10 +304,7 @@ fn list_remote_refs(s3: &S3Client, settings: &Settings) -> Result<HashMap<String
                             key: k.to_owned(),
                         },
                         updated: o.last_modified.unwrap().to_owned(),
-                        reference: GitRef {
-                            name,
-                            sha,
-                        },
+                        reference: GitRef { name, sha },
                     },
                 )
             })
