@@ -28,7 +28,7 @@ quick_main!(run);
 
 struct Settings {
     git_dir: PathBuf,
-    //remote_alias: String,
+    remote_alias: String,
     remote_url: String,
     root: s3::Key,
 }
@@ -68,14 +68,15 @@ fn run() -> Result<()> {
 
     let git_dir = PathBuf::from(env::var("GIT_DIR").chain_err(|| "GIT_DIR not set")?);
     let cur_dir = env::current_dir().chain_err(|| "could not get pwd")?;
-    let work_dir = cur_dir.join(&git_dir).join("remote-s3").join(alias);
+    let work_dir = cur_dir.join(&git_dir).join("remote-s3").join(&alias);
 
     fs::create_dir_all(&work_dir)
         .chain_err(|| format!("could not create work dir: {:?}", work_dir))?;
 
     let settings = Settings {
-        git_dir: git_dir.to_owned(),
+        git_dir,
         remote_url: url.to_owned(),
+        remote_alias: alias,
         root: s3::Key {
             bucket: bucket.to_string(),
             key: path.to_string(),
@@ -122,18 +123,24 @@ impl RemoteRefs {
     }
 }
 
-fn gpg_encrypt(recipient: &str, i: &Path, o: &Path) -> Result<()> {
-    let result = Command::new("gpg")
+fn gpg_encrypt(recipients: &[String], i: &Path, o: &Path) -> Result<()> {
+    let mut cmd = Command::new("gpg");
+    cmd
         .arg("-q")
-        .arg("--batch")
-        .arg("-r")
-        .arg(recipient)
+        .arg("--batch");
+    for recipient in recipients {
+        cmd
+            .arg("-r")
+            .arg(recipient);
+    }
+    let result = cmd
         .arg("-o")
         .arg(o.to_str().chain_err(|| "out path invalid")?)
         .arg("-e")
         .arg(i.to_str().chain_err(|| "in path invalid")?)
         .output()
         .chain_err(|| "failed to run gpg")?;
+
     if !result.status.success() {
         bail!("gpg encrypt failed");
     }
@@ -253,9 +260,16 @@ fn push_to_s3(s3: &S3Client, settings: &Settings, r: &GitRef) -> Result<()> {
 
     git_bundle_create(&bundle_file, &r.name)?;
 
-    let recip = git_config("user.email")?;
+    let recipients =
+        git_config(&format!("remote.{}.gpgRecipients", settings.remote_alias))
+        .map(|config|
+            config.split_ascii_whitespace().map(|s| s.to_string()).collect_vec()
+        )
+        .or_else(|_| {
+            git_config("user.email").map(|recip| vec![recip])
+        })?;
 
-    gpg_encrypt(&recip, &bundle_file, &enc_file)?;
+    gpg_encrypt(&recipients, &bundle_file, &enc_file)?;
 
     let path = r.bundle_path(settings.root.key.to_owned());
     let o = s3::Key {

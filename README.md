@@ -25,8 +25,10 @@ as an ancestor, at which point the old head is deleted.
 This prevents any data loss, but puts the burden on the user to manually merge
 in old braches.
 
-Each branch is stored (after being bundled with `git bundle` and encrypted with `gpg`) on s3 using the key `s3://bucket/prefix/<ref_name>/<sha>.bundle`.
-On average, a `git push` will incur two list, a put and a delete s3 operation. A `git pull` will incur a list and a get s3 operation.
+Each branch is stored (after being bundled with `git bundle` and encrypted with
+`gpg`) on s3 using the key `s3://bucket/prefix/<ref_name>/<sha>.bundle`.
+On average, a `git push` will incur two list, a put and a delete s3 operation.
+A `git pull` will incur a list and a get s3 operation.
 
 
 Installation
@@ -37,6 +39,7 @@ Installation
 ** See [here](https://docs.rs/rusoto_credential/0.40.0/rusoto_credential/struct.ChainProvider.html).
 * Setup gpg
 ** gpg encryption will be attempted using `git config user.email` as a recipient. You'll want to ensure you have public and private keys setup for this user.
+** Alternatively, you can set a list of space-delimnated recipients using the `remote.<name>.gpgRecipients`config.
 
 
 Example Usage
@@ -67,5 +70,4 @@ Future improvments
 * A better way to notify the user there are multiple heads on s3.
 ** Show warning when attempting to push/fetch and there are multiple heads for a branch?
 * Allow disabling gpg with `remote.<name>.gpg`
-* Allow setting recipiants with config `remote.<name>.gpgRecipiants`
 * use `gpg.program`
