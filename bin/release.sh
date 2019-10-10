@@ -41,7 +41,7 @@ release() {
 }
 
 build() {
-  for target in x86_64-unknown-linux-gnu; do
+  for target in x86_64-unknown-linux-gnu i686-unknown-linux-gnu; do
     cargo build --release --target "$target"
     version=$(egrep "^version\s+=" Cargo.toml | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")
     echo "target/$target/release/git-remote-s3 git-remote-s3-$target" | \
