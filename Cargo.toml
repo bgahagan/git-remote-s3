@@ -3,6 +3,12 @@ name = "git-remote-s3"
 version = "0.1.1"
 authors = ["Bryan Gahagan <git@bgahagan.dev>"]
 edition = "2018"
+license = "MIT"
+description = "Push and pull git repos to/from an s3 bucket, encrypted using gpg."
+repository = "https://github.com/bgahagan/git-remote-s3"
+readme = "README.md"
+keywords = [ "git", "aws", "S3", "gpg", "cli" ]
+categories = [ "command-line-utilities", "development-tools" ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
