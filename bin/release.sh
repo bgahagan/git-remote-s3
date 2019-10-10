@@ -33,7 +33,7 @@ release() {
   if hub release --include-drafts | grep -q "^v${version}\$"; then
     hub release edit "v${version}" -m "" "${assets[@]}"
   else
-    { echo "${project_name} ${version}"
+    { echo "${project_name} v${version}"
       echo
       changelog
     } | hub release create --draft ${pre:+--prerelease} -F - "v${version}" "${assets[@]}"
@@ -44,7 +44,8 @@ build() {
   for target in x86_64-unknown-linux-gnu i686-unknown-linux-gnu; do
     cargo build --release --target "$target"
     version=$(egrep "^version\s+=" Cargo.toml | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")
-    echo "target/$target/release/git-remote-s3 git-remote-s3-$target" | \
+    gzip -c target/$target/release/git-remote-s3 > target/$target/release/git-remote-s3-$target.gz
+    echo "target/$target/release/git-remote-s3-$target.gz git-remote-s3-$target.gz" | \
       release "git-remote-s3" "$version"
   done
 }
