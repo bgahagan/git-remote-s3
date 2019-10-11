@@ -53,10 +53,15 @@ fn run() -> Result<()> {
 
     let (bucket, path) = {
         if !url.starts_with("s3://") {
-            bail!("url must start with s3://")
+            bail!("remote url does not start with s3://. expected a url in the format s3://bucket/prefix")
         }
         let url = &url[5..];
-        let slash = url.find('/').unwrap();
+        let slash = match url.find('/') { 
+            Some(idx) => idx
+            None => 
+              bail!("remote url does not appear to have a prefix. expected a url in the format s3://bucket/prefix")
+              0
+        }
         let bucket = url.get(..slash).unwrap();
         let end = if url.ends_with('/') {
             url.len() - 1
