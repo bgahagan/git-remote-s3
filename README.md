@@ -36,10 +36,11 @@ git clone s3://my_bucket/prefix
 Installation
 ------------
 
-* Put `git-remote-s3` in your path
-  * Download the latest release [here](https://github.com/bgahagan/git-remote-s3/releases/latest).
+* Put `git-remote-s3` in your PATH
+  * Download the latest release [here](https://github.com/bgahagan/git-remote-s3/releases/latest), gunzip and put it in your PATH
+  * Or, install using cargo: `cargo install git-remote-s3`
 * Make sure s3 credentials are setup
-  * See [here](https://docs.rs/rusoto_credential/0.40.0/rusoto_credential/struct.ChainProvider.html) for details on how the rusuto library loeas as credentials (similar to the aws command line).
+  * See [here](https://docs.rs/rusoto_credential/0.40.0/rusoto_credential/struct.ChainProvider.html) for details on how the rusuto library loads as credentials (similar to the aws command line).
 * Setup gpg
   * gpg encryption will be attempted using `git config user.email` as a recipient. You'll want to ensure you have public and private keys setup for this user.
   * Alternatively, you can set a list of space-delimnated recipients using the `remote.<name>.gpgRecipients`config.
