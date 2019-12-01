@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Run a minio server for tests
+
 exec docker run -p 9001:9000 -i --rm \
   -e MINIO_ACCESS_KEY=test \
   -e MINIO_SECRET_KEY=test1234 \

@@ -19,7 +19,7 @@ changelog() {
     --reverse "${previous_tag}..${head}"
 }
 
-release() {
+stage_github() {
 
   project_name="${1?}"
   version="${2?}"
@@ -46,8 +46,11 @@ build() {
     version=$(egrep "^version\s+=" Cargo.toml | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")
     gzip -c target/$target/release/git-remote-s3 > target/$target/release/git-remote-s3-$target.gz
     echo "target/$target/release/git-remote-s3-$target.gz git-remote-s3-$target.gz" | \
-      release "git-remote-s3" "$version"
+      stage_github "git-remote-s3" "$version"
   done
+  echo "Finished building and staging binaries.  Manual next stpes:"
+  echo " - Promote github relase"
+  echo " - publish crate: cargo publish"
 }
 
 build
