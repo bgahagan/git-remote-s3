@@ -60,7 +60,6 @@ fn run() -> Result<()> {
             Some(idx) => idx,
             None => {
                 bail!("remote url does not appear to have a prefix. expected a url in the format s3://bucket/prefix");
-                0
             }
         };
         let bucket = url.get(..slash).unwrap();
@@ -145,7 +144,8 @@ fn fetch_from_s3(s3: &S3Client, settings: &Settings, r: &GitRef) -> Result<()> {
     };
     s3::get(s3, &o, &enc_file)?;
 
-    gpg::decrypt(&enc_file, &bundle_file)?;
+    let gpgcmd = git::config2("gpg.program", "gpg")?;
+    gpg::decrypt(&enc_file, &bundle_file, &gpgcmd)?;
 
     git::bundle_unbundle(&bundle_file, &r.name)?;
 
@@ -171,7 +171,8 @@ fn push_to_s3(s3: &S3Client, settings: &Settings, r: &GitRef) -> Result<()> {
         })
         .or_else(|_| git::config("user.email").map(|recip| vec![recip]))?;
 
-    gpg::encrypt(&recipients, &bundle_file, &enc_file)?;
+    let gpgcmd = git::config2("gpg.program", "gpg")?;
+    gpg::encrypt(&recipients, &bundle_file, &enc_file, &gpgcmd)?;
 
     let path = r.bundle_path(settings.root.key.to_owned());
     let o = s3::Key {
