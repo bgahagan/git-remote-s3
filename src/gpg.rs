@@ -2,8 +2,8 @@ use super::errors::*;
 use std::path::Path;
 use std::process::Command;
 
-pub fn encrypt(recipients: &[String], i: &Path, o: &Path) -> Result<()> {
-    let mut cmd = Command::new("gpg");
+pub fn encrypt(recipients: &[String], i: &Path, o: &Path, gpgcmd: &String) -> Result<()> {
+    let mut cmd = Command::new(gpgcmd);
     cmd.arg("-q").arg("--batch");
     for recipient in recipients {
         cmd.arg("-r").arg(recipient);
@@ -22,8 +22,8 @@ pub fn encrypt(recipients: &[String], i: &Path, o: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn decrypt(i: &Path, o: &Path) -> Result<()> {
-    let result = Command::new("gpg")
+pub fn decrypt(i: &Path, o: &Path, gpgcmd: &String) -> Result<()> {
+    let result = Command::new(gpgcmd)
         .arg("-q")
         .arg("--batch")
         .arg("-o")
