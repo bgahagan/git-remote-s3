@@ -1,6 +1,7 @@
 use super::errors::*;
 use std::path::Path;
 use std::process::Command;
+use std::io::{Write};
 
 pub fn encrypt(recipients: &[String], i: &Path, o: &Path) -> Result<()> {
     let mut cmd = Command::new("gpg");
@@ -17,6 +18,8 @@ pub fn encrypt(recipients: &[String], i: &Path, o: &Path) -> Result<()> {
         .chain_err(|| "failed to run gpg")?;
 
     if !result.status.success() {
+        std::io::stdout().write_all(&result.stdout).unwrap();
+        std::io::stderr().write_all(&result.stderr).unwrap();
         bail!("gpg encrypt failed");
     }
     Ok(())
@@ -33,6 +36,8 @@ pub fn decrypt(i: &Path, o: &Path) -> Result<()> {
         .output()
         .chain_err(|| "failed to run gpg")?;
     if !result.status.success() {
+        std::io::stdout().write_all(&result.stdout).unwrap();
+        std::io::stderr().write_all(&result.stderr).unwrap();
         bail!("gpg decrypt failed");
     }
     Ok(())
