@@ -301,9 +301,9 @@ fn list_remote_refs(s3: &S3Client, settings: &Settings) -> Result<HashMap<String
                     RemoteRef {
                         object: s3::Key {
                             bucket: settings.root.bucket.to_owned(),
-                            key: k.to_owned(),
+                            key: k,
                         },
-                        updated: o.last_modified.unwrap().to_owned(),
+                        updated: o.last_modified.unwrap(),
                         reference: GitRef { name, sha },
                     },
                 )
