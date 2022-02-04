@@ -37,8 +37,7 @@ struct Settings {
 fn run() -> Result<()> {
     let region = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
         Region::Custom {
-            name: "us-east-1".to_owned(),
-            endpoint: endpoint.to_owned(),
+            name: String::from("us-east-1"),
         }
     } else {
         Region::default()
