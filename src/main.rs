@@ -38,6 +38,7 @@ fn run() -> Result<()> {
     let region = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
         Region::Custom {
             name: String::from("us-east-1"),
+            endpoint,
         }
     } else {
         Region::default()
