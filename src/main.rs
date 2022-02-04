@@ -101,12 +101,7 @@ struct GitRef {
 impl GitRef {
     fn bundle_path(&self, root: String) -> String {
         let mut s = String::new();
-        s.push_str(&root);
-        s.push('/');
-        s.push_str(&self.name);
-        s.push('/');
-        s.push_str(&self.sha);
-        s.push_str(".bundle");
+        s.push_str(&format!("{}/{}/{}.bundle", &root, &self.name, &self.sha));
         s
     }
 }
