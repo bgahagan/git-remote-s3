@@ -28,9 +28,9 @@ mod s3;
 quick_main!(run);
 
 struct Settings {
-    git_dir: PathBuf,
+    //git_dir: PathBuf,
     remote_alias: String,
-    remote_url: String,
+    //remote_url: String,
     root: s3::Key,
 }
 
