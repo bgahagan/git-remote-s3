@@ -13,8 +13,8 @@ use tempfile::Builder;
 
 use std::collections::HashMap;
 use std::env;
-use std::fs::{self};
-use std::io::{self};
+use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 pub mod errors {
