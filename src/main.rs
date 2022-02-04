@@ -120,7 +120,7 @@ struct RemoteRefs {
 
 impl RemoteRefs {
     fn latest_ref(&self) -> &RemoteRef {
-        self.by_update_time.iter().next().unwrap()
+        self.by_update_time.get(0).unwrap()
     }
 }
 
