@@ -80,8 +80,8 @@ fn run() -> Result<()> {
         .chain_err(|| format!("could not create work dir: {:?}", work_dir))?;
 
     let settings = Settings {
-        git_dir,
-        remote_url: url.to_owned(),
+        //git_dir,
+        //remote_url: url.to_owned(),
         remote_alias: alias,
         root: s3::Key {
             bucket: bucket.to_string(),
