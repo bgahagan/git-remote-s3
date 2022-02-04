@@ -60,7 +60,6 @@ fn run() -> Result<()> {
             Some(idx) => idx,
             None => {
                 bail!("remote url does not appear to have a prefix. expected a url in the format s3://bucket/prefix");
-                0
             }
         };
         let bucket = url.get(..slash).unwrap();
