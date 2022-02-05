@@ -197,15 +197,15 @@ fn integration() {
     // assert that there are 2 refs on s3 (the original was kept)
     git(&repo1, "ls-remote origin").assert()
         .stdout(format!("{}\trefs/heads/master\n{}\trefs/heads/master__{}\n{}\tHEAD\n", sha2l, sha1l, sha1, sha2l));
-    git(&repo1, "pull -f origin master").assert().success();
+    git(&repo1, "pull -r origin master").assert().success();
     git(
         &repo1,
         format!("log --oneline --decorate=short -n 1 {}", sha2).as_str(),
     )
     .assert()
-    .stdout(format!("{} (origin/master) r2_c2\n", sha2));
+    .stdout(format!("{} (HEAD -> master, origin/master) r2_c2\n", sha2));
     git(&repo1, "push origin master").assert().success();
-    // TODO assert that there is only one ref on s3
-
-    assert_eq!(2 + 2, 4);
+    // assert that refs are unchanged on s3
+    git(&repo1, "ls-remote origin").assert()
+        .stdout(format!("{}\trefs/heads/master\n{}\trefs/heads/master__{}\n{}\tHEAD\n", sha2l, sha1l, sha1, sha2l));
 }
