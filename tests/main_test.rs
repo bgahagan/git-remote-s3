@@ -108,6 +108,11 @@ fn git_rev(pwd: &Path) -> String {
     String::from_utf8(out.stdout).unwrap().trim().to_string()
 }
 
+fn git_rev_long(pwd: &Path) -> String {
+    let out = git(pwd, "rev-parse HEAD").output().unwrap();
+    String::from_utf8(out.stdout).unwrap().trim().to_string()
+}
+
 #[test]
 fn integration() {
     let region = Region::Custom {
@@ -180,22 +185,25 @@ fn integration() {
         .assert()
         .success();
     git(&repo1, "push origin").assert().success();
-    //let sha = git_rev(&repo1);
+    let sha1 = git_rev(&repo1);
+    let sha1l = git_rev_long(&repo1);
     git(&repo2, "commit --allow-empty -am r2_c2")
         .assert()
         .success();
-    let sha = git_rev(&repo2);
-    //assert!(false, "abort");
+    let sha2 = git_rev(&repo2);
+    let sha2l = git_rev_long(&repo2);
     git(&repo2, "push origin").assert().failure();
     git(&repo2, "push -f origin").assert().success();
-    // TODO assert that there are 2 refs on s3 (the original was kept)
-    git(&repo1, "pull origin master").assert().success();
+    // assert that there are 2 refs on s3 (the original was kept)
+    git(&repo1, "ls-remote origin").assert()
+        .stdout(format!("{}\trefs/heads/master\n{}\trefs/heads/master__{}\n{}\tHEAD\n", sha2l, sha1l, sha1, sha2l));
+    git(&repo1, "pull -f origin master").assert().success();
     git(
         &repo1,
-        format!("log --oneline --decorate=short -n 1 {}", sha).as_str(),
+        format!("log --oneline --decorate=short -n 1 {}", sha2).as_str(),
     )
     .assert()
-    .stdout(format!("{} (origin/master) r2_c2\n", sha));
+    .stdout(format!("{} (origin/master) r2_c2\n", sha2));
     git(&repo1, "push origin master").assert().success();
     // TODO assert that there is only one ref on s3
 
