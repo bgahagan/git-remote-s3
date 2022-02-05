@@ -1,0 +1,11 @@
+FROM rust:1
+
+WORKDIR /usr/src/app
+
+COPY ./Cargo.toml .
+COPY ./Cargo.lock .
+COPY ./src ./src
+RUN cargo build
+
+COPY ./tests ./tests
+RUN ["./tests/run.sh"]

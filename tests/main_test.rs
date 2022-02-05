@@ -65,7 +65,7 @@ fn list_keys_in_bucket(client: &S3Client, bucket: &str) -> Vec<String> {
     match result {
         Ok(r) => r
             .contents
-            .unwrap()
+            .unwrap_or_default()
             .into_iter()
             .map(|o| o.key.unwrap())
             .collect(),
@@ -130,7 +130,6 @@ fn integration() {
 
     let repo1 = test_dir.path().join("repo1");
     let repo2 = test_dir.path().join("repo2");
-    //test_dir.into_path();
 
     fs::create_dir(&repo1).unwrap();
     fs::create_dir(&repo2).unwrap();
@@ -141,19 +140,23 @@ fn integration() {
 
     println!("test: pushing from repo1");
     git(&repo1, "init").assert().success();
+    git(&repo1, "config user.email test@example.com").assert().success();
+    git(&repo1, "config user.name Test").assert().success();
     git(&repo1, "commit --allow-empty -am r1_c1")
         .assert()
         .success();
     git(&repo1, "remote add origin s3://git-remote-s3/test")
         .assert()
         .success();
-    git(&repo1, "push origin").assert().success();
+    git(&repo1, "push --set-upstream origin master").assert().success();
     let sha = git_rev(&repo1);
 
     println!("test: cloning into repo2");
     git(&repo2, "clone s3://git-remote-s3/test .")
         .assert()
         .success();
+    git(&repo2, "config user.email test@example.com").assert().success();
+    git(&repo2, "config user.name Test").assert().success();
     git(&repo2, "log --oneline --decorate=short")
         .assert()
         .stdout(format!(
