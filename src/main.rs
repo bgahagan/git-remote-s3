@@ -13,8 +13,8 @@ use tempfile::Builder;
 
 use std::collections::HashMap;
 use std::env;
-use std::fs::{self};
-use std::io::{self};
+use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 pub mod errors {
@@ -28,17 +28,17 @@ mod s3;
 quick_main!(run);
 
 struct Settings {
-    git_dir: PathBuf,
+    //git_dir: PathBuf,
     remote_alias: String,
-    remote_url: String,
+    //remote_url: String,
     root: s3::Key,
 }
 
 fn run() -> Result<()> {
     let region = if let Ok(endpoint) = env::var("S3_ENDPOINT") {
         Region::Custom {
-            name: "us-east-1".to_owned(),
-            endpoint: endpoint.to_owned(),
+            name: String::from("us-east-1"),
+            endpoint,
         }
     } else {
         Region::default()
@@ -60,7 +60,6 @@ fn run() -> Result<()> {
             Some(idx) => idx,
             None => {
                 bail!("remote url does not appear to have a prefix. expected a url in the format s3://bucket/prefix");
-                0
             }
         };
         let bucket = url.get(..slash).unwrap();
@@ -81,8 +80,8 @@ fn run() -> Result<()> {
         .chain_err(|| format!("could not create work dir: {:?}", work_dir))?;
 
     let settings = Settings {
-        git_dir,
-        remote_url: url.to_owned(),
+        //git_dir,
+        //remote_url: url.to_owned(),
         remote_alias: alias,
         root: s3::Key {
             bucket: bucket.to_string(),
@@ -102,12 +101,7 @@ struct GitRef {
 impl GitRef {
     fn bundle_path(&self, root: String) -> String {
         let mut s = String::new();
-        s.push_str(&root);
-        s.push('/');
-        s.push_str(&self.name);
-        s.push('/');
-        s.push_str(&self.sha);
-        s.push_str(".bundle");
+        s.push_str(&format!("{}/{}/{}.bundle", &root, &self.name, &self.sha));
         s
     }
 }
@@ -126,7 +120,7 @@ struct RemoteRefs {
 
 impl RemoteRefs {
     fn latest_ref(&self) -> &RemoteRef {
-        self.by_update_time.iter().next().unwrap()
+        self.by_update_time.get(0).unwrap()
     }
 }
 
@@ -307,9 +301,9 @@ fn list_remote_refs(s3: &S3Client, settings: &Settings) -> Result<HashMap<String
                     RemoteRef {
                         object: s3::Key {
                             bucket: settings.root.bucket.to_owned(),
-                            key: k.to_owned(),
+                            key: k,
                         },
-                        updated: o.last_modified.unwrap().to_owned(),
+                        updated: o.last_modified.unwrap(),
                         reference: GitRef { name, sha },
                     },
                 )
