@@ -1,0 +1,22 @@
+name: Test
+
+on: [push]
+
+jobs:
+  build:
+    
+    services:
+      minio:
+        image: minio/minio:edge-cicd
+        ports:
+          - 9001:9000
+        env:
+          MINIO_ACCESS_KEY: test
+          MINIO_SECRET_KEY: test1234
+          MINIO_DOMAIN: localhost
+    
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - run: ./tests/run.sh
