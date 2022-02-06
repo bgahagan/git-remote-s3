@@ -1,10 +1,25 @@
+name: Release
+
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
+
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check version
+        env: 
+          GIT_VERSION: ${{ github.ref }}
+        run: |
+          CARGO_VERSION="v$(egrep '^version\s+=' Cargo.toml | egrep -o '[0-9]+\.[0-9]+\.[0-9]+')"
+          echo $CARGO_VERSION $GIT_VERSION
+          [ "$GIT_VERSION" = "$CARGO_VERSION" ]
+    
   release:
     name: release ${{ matrix.target }}
+    needs: check-version
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,3 +39,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
+
+  publish:
+    needs: check-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
