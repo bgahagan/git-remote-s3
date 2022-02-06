@@ -9,6 +9,7 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@master
       - name: check version
         env: 
           GIT_VERSION: ${{ github.ref }}
@@ -41,10 +42,10 @@ jobs:
           ARCHIVE_TYPES: ${{ matrix.archive }}
 
   publish:
-    needs: check-version
+    needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@master
       - name: publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
