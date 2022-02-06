@@ -1,0 +1,21 @@
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: check version
+        env: 
+          GIT_VERSION: ${{ github.ref }}
+        run: |
+          CARGO_VERSION="v$(egrep '^version\s+=' Cargo.toml | egrep -o '[0-9]+\.[0-9]+\.[0-9]+')"
+          echo $CARGO_VERSION $GIT_VERSION
+          [ "$GIT_VERSION" = "$CARGO_VERSION" ]
+      - name: publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
