@@ -21,6 +21,7 @@ pub mod errors {
     error_chain! {}
 }
 use errors::*;
+use std::io::Write;
 mod git;
 mod gpg;
 mod s3;
@@ -187,7 +188,7 @@ fn cmd_fetch(s3: &S3Client, settings: &Settings, sha: &str, name: &str) -> Resul
         sha: sha.to_string(),
     };
     fetch_from_s3(s3, settings, &git_ref)?;
-    println!();
+    let _ = writeln!(io::stdout());
     Ok(())
 }
 
